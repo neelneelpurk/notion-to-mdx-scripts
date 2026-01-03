@@ -970,6 +970,7 @@ class PageBlocksResponse(BaseModel):
             
             if mdx:
                 lines.append(mdx)
+                lines.append("\n")  # Extra line between blocks
             
             prev_type = block_type
         

@@ -4,6 +4,7 @@ MDX Converter Task
 Convert Notion pages to MDX files.
 """
 
+import json
 from pathlib import Path
 
 from models.blogdatasource import BlogPage
@@ -37,11 +38,20 @@ def convert_page_to_mdx(page: BlogPage, output_dir: Path) -> str | None:
         filename = (slug or sanitize_filename(title)) + ".mdx"
         file_path = output_dir / filename
         
+        # Get tags, description, type
+        tags = page.get_tags()
+        tags_yaml = json.dumps(tags)  # Format as JSON array for YAML
+        description = page.get_description()
+        page_type = page.get_type() or ""
+        
         # Build frontmatter
         frontmatter = f'''---
 title: "{title}"
 slug: "{slug}"
+description: "{description}"
+type: "{page_type}"
 status: "{status}"
+tags: {tags_yaml}
 last_edited: "{page.last_edited_time.isoformat()}"
 ---
 
