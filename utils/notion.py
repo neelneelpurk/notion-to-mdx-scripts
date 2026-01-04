@@ -84,14 +84,15 @@ def get_block_children(block_id: str, cursor: str | None = None) -> PageBlocksRe
     return PageBlocksResponse.model_validate(response.json())
 
 
-def fetch_all_blocks(page_id: str) -> PageBlocksResponse:
-    """Fetch all blocks from a page, handling pagination."""
+def fetch_all_blocks(block_id: str) -> PageBlocksResponse:
+    """Fetch all blocks from a block (page or regular block), handling pagination and recursion."""
     all_results = []
     cursor = None
     first_response = None
     
+    # Pagination
     while True:
-        response = get_block_children(page_id, cursor)
+        response = get_block_children(block_id, cursor)
         
         if first_response is None:
             first_response = response
@@ -101,6 +102,17 @@ def fetch_all_blocks(page_id: str) -> PageBlocksResponse:
         if not response.has_more:
             break
         cursor = response.next_cursor
+    
+    # Recursion for nested blocks
+    for block in all_results:
+        if block.has_children:
+            children_response = fetch_all_blocks(block.id)
+            # Blocks have content in a field named after their type
+            # We need to set the children on that content object
+            block_type = block.type
+            block_content = getattr(block, block_type)
+            if hasattr(block_content, "children"):
+                block_content.children = children_response.results
     
     if first_response:
         first_response.results = all_results

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-NotionFlare - Main Entrypoint
+Notion to MDX Scripts - Main Entrypoint
 
 GitHub Action entrypoint that fetches all pages from a Notion blog datasource
 and converts them to MDX files.
@@ -33,7 +33,7 @@ def main():
         print("Error: BLOG_DATASOURCE_ID environment variable is required")
         sys.exit(1)
     
-    print("NotionFlare - Blog to MDX Converter")
+    print("Notion to MDX Scripts - Blog to MDX Converter")
     print("====================================")
     print(f"Data Source: {data_source_id}")
     print(f"Output Dir:  {output_dir}")
@@ -42,8 +42,10 @@ def main():
     # Step 1: Fetch all pages from data source
     print("Fetching pages from data source...")
     try:
-        pages = fetch_datasource_pages(data_source_id)
-        print(f"Found {len(pages)} pages\n")
+        all_pages = fetch_datasource_pages(data_source_id)
+        # Filter to only published pages
+        pages = [p for p in all_pages if p.get_status() == "Publish"]
+        print(f"Found {len(all_pages)} pages, {len(pages)} published\n")
     except Exception as e:
         print(f"Error fetching data source: {e}")
         sys.exit(1)

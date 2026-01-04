@@ -570,13 +570,17 @@ class PageBlocksResponse(BaseModel):
     @staticmethod
     def _block_to_markdown(block: Block, indent: int = 0, number: int | None = None) -> str:
         """Convert a single block to markdown string."""
-        indent_str = "  " * indent
+        indent_str = "    " * indent
         block_type = block.type
         
         match block_type:
             case "paragraph":
                 text = PageBlocksResponse._rich_text_to_markdown(block.paragraph.rich_text)
-                return f"{indent_str}{text}\n" if text else "\n"
+                res = f"{indent_str}{text}\n" if text else "\n"
+                if block.paragraph.children:
+                    for child in block.paragraph.children:
+                        res += PageBlocksResponse._block_to_markdown(child, indent + 1)
+                return res
             
             case "heading_1":
                 text = PageBlocksResponse._rich_text_to_markdown(block.heading_1.rich_text)
@@ -592,21 +596,38 @@ class PageBlocksResponse(BaseModel):
             
             case "bulleted_list_item":
                 text = PageBlocksResponse._rich_text_to_markdown(block.bulleted_list_item.rich_text)
-                return f"{indent_str}- {text}\n"
+                res = f"{indent_str}- {text}\n"
+                if block.bulleted_list_item.children:
+                    for child in block.bulleted_list_item.children:
+                        res += PageBlocksResponse._block_to_markdown(child, indent + 1)
+                return res
             
             case "numbered_list_item":
                 text = PageBlocksResponse._rich_text_to_markdown(block.numbered_list_item.rich_text)
                 num = number if number is not None else 1
-                return f"{indent_str}{num}. {text}\n"
+                res = f"{indent_str}{num}. {text}\n"
+                if block.numbered_list_item.children:
+                    for child in block.numbered_list_item.children:
+                        res += PageBlocksResponse._block_to_markdown(child, indent + 1)
+                return res
             
             case "to_do":
                 text = PageBlocksResponse._rich_text_to_markdown(block.to_do.rich_text)
                 checkbox = "[x]" if block.to_do.checked else "[ ]"
-                return f"{indent_str}- {checkbox} {text}\n"
+                res = f"{indent_str}- {checkbox} {text}\n"
+                if block.to_do.children:
+                    for child in block.to_do.children:
+                        res += PageBlocksResponse._block_to_markdown(child, indent + 1)
+                return res
             
             case "toggle":
                 text = PageBlocksResponse._rich_text_to_markdown(block.toggle.rich_text)
-                return f"{indent_str}<details>\n{indent_str}<summary>{text}</summary>\n{indent_str}</details>\n"
+                res = f"{indent_str}<details>\n{indent_str}<summary>{text}</summary>\n"
+                if block.toggle.children:
+                    for child in block.toggle.children:
+                        res += PageBlocksResponse._block_to_markdown(child, indent + 1)
+                res += f"{indent_str}</details>\n"
+                return res
             
             case "code":
                 text = PageBlocksResponse._extract_plain_text(block.code.rich_text)
@@ -616,8 +637,11 @@ class PageBlocksResponse(BaseModel):
             case "quote":
                 text = PageBlocksResponse._rich_text_to_markdown(block.quote.rich_text)
                 lines = text.split("\n")
-                quoted = "\n".join(f"> {line}" for line in lines)
-                return f"{quoted}\n"
+                res = "\n".join(f"> {line}" for line in lines) + "\n"
+                if block.quote.children:
+                    for child in block.quote.children:
+                        res += PageBlocksResponse._block_to_markdown(child, indent + 1)
+                return res
             
             case "callout":
                 text = PageBlocksResponse._rich_text_to_markdown(block.callout.rich_text)
@@ -625,7 +649,11 @@ class PageBlocksResponse(BaseModel):
                 if block.callout.icon:
                     if hasattr(block.callout.icon, 'emoji'):
                         icon = f"{block.callout.icon.emoji} "
-                return f"> {icon}{text}\n"
+                res = f"> {icon}{text}\n"
+                if block.callout.children:
+                    for child in block.callout.children:
+                        res += PageBlocksResponse._block_to_markdown(child, indent + 1)
+                return res
             
             case "divider":
                 return "---\n"
@@ -689,8 +717,19 @@ class PageBlocksResponse(BaseModel):
             case "breadcrumb":
                 return ""  # Breadcrumbs don't render to markdown
             
-            case "column_list" | "column":
-                return ""  # Handled by children
+            case "column_list":
+                res = ""
+                if block.column_list.children:
+                    for child in block.column_list.children:
+                        res += PageBlocksResponse._block_to_markdown(child, indent)
+                return res
+
+            case "column":
+                res = ""
+                if block.column.children:
+                    for child in block.column.children:
+                        res += PageBlocksResponse._block_to_markdown(child, indent)
+                return res
             
             case "table":
                 return ""  # Table header, rows handled separately
@@ -769,7 +808,7 @@ class PageBlocksResponse(BaseModel):
     @staticmethod
     def _block_to_mdx(block: Block, indent: int = 0, number: int | None = None) -> str:
         """Convert a single block to MDX string with JSX components."""
-        indent_str = "  " * indent
+        indent_str = "    " * indent
         block_type = block.type
         
         match block_type:
@@ -777,9 +816,15 @@ class PageBlocksResponse(BaseModel):
                 text = PageBlocksResponse._rich_text_to_markdown(block.paragraph.rich_text)
                 color = block.paragraph.color.value if hasattr(block.paragraph.color, 'value') else block.paragraph.color
                 if not text:
-                    return "\n"
-                text = PageBlocksResponse._wrap_with_color(text, color)
-                return f"{indent_str}{text}\n"
+                    res = "\n"
+                else:
+                    text = PageBlocksResponse._wrap_with_color(text, color)
+                    res = f"{indent_str}{text}\n"
+                
+                if block.paragraph.children:
+                    for child in block.paragraph.children:
+                        res += PageBlocksResponse._block_to_mdx(child, indent + 1)
+                return res
             
             case "heading_1":
                 text = PageBlocksResponse._rich_text_to_markdown(block.heading_1.rich_text)
@@ -803,26 +848,43 @@ class PageBlocksResponse(BaseModel):
                 text = PageBlocksResponse._rich_text_to_markdown(block.bulleted_list_item.rich_text)
                 color = block.bulleted_list_item.color.value if hasattr(block.bulleted_list_item.color, 'value') else block.bulleted_list_item.color
                 text = PageBlocksResponse._wrap_with_color(text, color)
-                return f"{indent_str}- {text}\n"
+                res = f"{indent_str}- {text}\n\n"
+                if block.bulleted_list_item.children:
+                    for child in block.bulleted_list_item.children:
+                        res += PageBlocksResponse._block_to_mdx(child, indent + 1)
+                return res
             
             case "numbered_list_item":
                 text = PageBlocksResponse._rich_text_to_markdown(block.numbered_list_item.rich_text)
                 color = block.numbered_list_item.color.value if hasattr(block.numbered_list_item.color, 'value') else block.numbered_list_item.color
                 text = PageBlocksResponse._wrap_with_color(text, color)
                 num = number if number is not None else 1
-                return f"{indent_str}{num}. {text}\n"
+                res = f"{indent_str}{num}. {text}\n\n"
+                if block.numbered_list_item.children:
+                    for child in block.numbered_list_item.children:
+                        res += PageBlocksResponse._block_to_mdx(child, indent + 1)
+                return res
             
             case "to_do":
                 text = PageBlocksResponse._rich_text_to_markdown(block.to_do.rich_text)
                 color = block.to_do.color.value if hasattr(block.to_do.color, 'value') else block.to_do.color
                 text = PageBlocksResponse._wrap_with_color(text, color)
                 checkbox = "[x]" if block.to_do.checked else "[ ]"
-                return f"{indent_str}- {checkbox} {text}\n"
+                res = f"{indent_str}- {checkbox} {text}\n"
+                if block.to_do.children:
+                    for child in block.to_do.children:
+                        res += PageBlocksResponse._block_to_mdx(child, indent + 1)
+                return res
             
             case "toggle":
                 text = PageBlocksResponse._rich_text_to_markdown(block.toggle.rich_text)
                 color = block.toggle.color.value if hasattr(block.toggle.color, 'value') else block.toggle.color
-                return f'<Accordion title="{text}" color="{color}">\n</Accordion>\n'
+                res = f'<Accordion title="{text}" color="{color}">\n'
+                if block.toggle.children:
+                    for child in block.toggle.children:
+                        res += PageBlocksResponse._block_to_mdx(child, indent + 1)
+                res += "</Accordion>\n"
+                return res
             
             case "code":
                 text = PageBlocksResponse._extract_plain_text(block.code.rich_text)
@@ -833,10 +895,18 @@ class PageBlocksResponse(BaseModel):
                 text = PageBlocksResponse._rich_text_to_markdown(block.quote.rich_text)
                 color = block.quote.color.value if hasattr(block.quote.color, 'value') else block.quote.color
                 if color != "default":
-                    return f'<Quote color="{color}">{text}</Quote>\n'
-                lines = text.split("\n")
-                quoted = "\n".join(f"> {line}" for line in lines)
-                return f"{quoted}\n"
+                    res = f'<Quote color="{color}">{text}\n'
+                else:
+                    lines = text.split("\n")
+                    res = "\n".join(f"> {line}" for line in lines) + "\n"
+                
+                if block.quote.children:
+                    for child in block.quote.children:
+                        res += PageBlocksResponse._block_to_mdx(child, indent + 1)
+                
+                if color != "default":
+                    res += "</Quote>\n"
+                return res
             
             case "callout":
                 text = PageBlocksResponse._rich_text_to_markdown(block.callout.rich_text)
@@ -845,7 +915,12 @@ class PageBlocksResponse(BaseModel):
                 if block.callout.icon:
                     if hasattr(block.callout.icon, 'emoji'):
                         icon = block.callout.icon.emoji
-                return f'<Callout icon="{icon}" color="{color}">\n  {text}\n</Callout>\n'
+                res = f'<Callout icon="{icon}" color="{color}">\n  {text}\n'
+                if block.callout.children:
+                    for child in block.callout.children:
+                        res += PageBlocksResponse._block_to_mdx(child, indent + 1)
+                res += "</Callout>\n"
+                return res
             
             case "divider":
                 return "---\n"
@@ -914,8 +989,21 @@ class PageBlocksResponse(BaseModel):
             case "breadcrumb":
                 return ""
             
-            case "column_list" | "column":
-                return ""
+            case "column_list":
+                res = "<ColumnList>\n"
+                if block.column_list.children:
+                    for child in block.column_list.children:
+                        res += PageBlocksResponse._block_to_mdx(child, indent)
+                res += "</ColumnList>\n"
+                return res
+
+            case "column":
+                res = "<Column>\n"
+                if block.column.children:
+                    for child in block.column.children:
+                        res += PageBlocksResponse._block_to_mdx(child, indent + 1)
+                res += "</Column>\n"
+                return res
             
             case "table":
                 return ""
