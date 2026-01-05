@@ -107,19 +107,3 @@ jobs:
           commit_message: "chore: sync content from notion"
           file_pattern: "src/content/blog/*.mdx"
 ```
-
-
-# Introduction
-
-This post was synced automatically from Notion...
-
-> 💡 **Tip**: Use Callouts in Notion for emphasized tips!
-```
-
-## 📝 License
-
-This project is licensed under the **Apache License 2.0**. See the [LICENSE](LICENSE) file for details.
-
----
-
-Built with ❤️ by [Soumyadeep Purkait](https://github.com/neelneelpurk)
