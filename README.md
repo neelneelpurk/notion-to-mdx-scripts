@@ -5,7 +5,7 @@
 
 **Notion to MDX Scripts** turns Notion into a high-performance headless content engine. It fetches pages from a Notion database and converts them into high-fidelity MDX files, perfect for modern static site generators like **Astro**, **Next.js**, or **Cloudflare Pages**.
 
-You can read more about the motivation and setup in this blog post: [Host your Blog on Notion with Cloudflare Pages](https://soumyadeeppurkait.xyz/blog/host-blog-notion-cloudflare/).
+You can read more about the motivation and setup in this blog post: [Building My Personal Blog Using Notion and Cloudflare Pages (for free)](https://soumyadeeppurkait.xyz/blog/host-blog-notion-cloudflare/).
 
 ---
 
