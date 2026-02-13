@@ -314,6 +314,11 @@ class Heading3Block(BlockBase):
     heading_3: HeadingContent
 
 
+class Heading4Block(BlockBase):
+    type: Literal["heading_4"] = "heading_4"
+    heading_4: HeadingContent
+
+
 class BulletedListItemBlock(BlockBase):
     type: Literal["bulleted_list_item"] = "bulleted_list_item"
     bulleted_list_item: BulletedListItemContent
@@ -453,6 +458,7 @@ Block = Annotated[
         Heading1Block,
         Heading2Block,
         Heading3Block,
+        Heading4Block,
         BulletedListItemBlock,
         NumberedListItemBlock,
         ToDoBlock,
@@ -517,6 +523,7 @@ class PageBlocksResponse(BaseModel):
             "heading_1": lambda b: PageBlocksResponse._extract_plain_text(b.heading_1.rich_text),
             "heading_2": lambda b: PageBlocksResponse._extract_plain_text(b.heading_2.rich_text),
             "heading_3": lambda b: PageBlocksResponse._extract_plain_text(b.heading_3.rich_text),
+            "heading_4": lambda b: PageBlocksResponse._extract_plain_text(b.heading_4.rich_text),
             "bulleted_list_item": lambda b: PageBlocksResponse._extract_plain_text(b.bulleted_list_item.rich_text),
             "numbered_list_item": lambda b: PageBlocksResponse._extract_plain_text(b.numbered_list_item.rich_text),
             "to_do": lambda b: PageBlocksResponse._extract_plain_text(b.to_do.rich_text),
@@ -593,6 +600,10 @@ class PageBlocksResponse(BaseModel):
             case "heading_3":
                 text = PageBlocksResponse._rich_text_to_markdown(block.heading_3.rich_text)
                 return f"### {text}\n"
+
+            case "heading_4":
+                text = PageBlocksResponse._rich_text_to_markdown(block.heading_4.rich_text)
+                return f"#### {text}\n"
             
             case "bulleted_list_item":
                 text = PageBlocksResponse._rich_text_to_markdown(block.bulleted_list_item.rich_text)
@@ -770,7 +781,7 @@ class PageBlocksResponse(BaseModel):
                 lines.append(md)
             
             # Add blank line after certain block types for readability
-            if block_type in ("heading_1", "heading_2", "heading_3", "paragraph", "quote", "callout", "code"):
+            if block_type in ("heading_1", "heading_2", "heading_3", "heading_4", "paragraph", "quote", "callout", "code"):
                 if block_type == "paragraph" and not self._get_block_text(block):
                     pass  # Don't add extra line after empty paragraph
                 elif prev_type not in ("bulleted_list_item", "numbered_list_item", "to_do"):
@@ -843,6 +854,12 @@ class PageBlocksResponse(BaseModel):
                 color = block.heading_3.color.value if hasattr(block.heading_3.color, 'value') else block.heading_3.color
                 text = PageBlocksResponse._wrap_with_color(text, color)
                 return f"### {text}\n"
+
+            case "heading_4":
+                text = PageBlocksResponse._rich_text_to_markdown(block.heading_4.rich_text)
+                color = block.heading_4.color.value if hasattr(block.heading_4.color, 'value') else block.heading_4.color
+                text = PageBlocksResponse._wrap_with_color(text, color)
+                return f"#### {text}\n"
             
             case "bulleted_list_item":
                 text = PageBlocksResponse._rich_text_to_markdown(block.bulleted_list_item.rich_text)
