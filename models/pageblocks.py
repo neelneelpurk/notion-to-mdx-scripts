@@ -554,10 +554,13 @@ class PageBlocksResponse(BaseModel):
         for rt in rich_text_list:
             text = rt.plain_text
             annotations = rt.annotations
-            
+
             # Apply formatting in order: code, bold, italic, strikethrough, underline
             if annotations.code:
                 text = f"`{text}`"
+            else:
+                # Escape < in plain text to prevent MDX from treating it as JSX
+                text = text.replace("<", "&lt;")
             if annotations.bold:
                 text = f"**{text}**"
             if annotations.italic:
